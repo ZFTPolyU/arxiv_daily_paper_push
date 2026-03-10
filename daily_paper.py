@@ -4,10 +4,13 @@ import json
 from datetime import datetime, timedelta
 import time
 
+import os  # 新增导入
+
 # --- 配置区 ---
-FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/your_webhook"
-DEEPSEEK_API_KEY = "your_api_key"  
-DEEPSEEK_API_URL = "your_api_url"
+# 从环境变量中读取配置，如果环境变量不存在，可以保留一个默认空字符串或默认URL
+FEISHU_WEBHOOK = os.environ.get("FEISHU_WEBHOOK", "your_webhook")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "your_api_key")  
+DEEPSEEK_API_URL = os.environ.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
 
 PWC_BASE_URL = "https://arxiv.paperswithcode.com/api/v0/papers/"
 
