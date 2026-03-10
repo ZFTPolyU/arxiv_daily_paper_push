@@ -1,0 +1,35 @@
+name: ArXiv Daily Paper Bot
+
+on:
+  schedule:
+    # 这里的 cron 是 UTC 时间。UTC 01:00 等于北京时间 09:00。
+    # 格式为: 分 小时 日 月 星期
+    - cron: '0 20 * * *'
+  workflow_dispatch: # 允许你在 GitHub 网页端手动点击运行，方便测试
+
+jobs:
+  run-arxiv-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # 你可以根据自己实际使用的 Python 版本调整
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install arxiv requests
+
+      - name: Run Daily Paper Script
+        env:
+          # 将刚才在 GitHub Settings 中配置的 Secrets 映射为环境变量
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_API_URL: ${{ secrets.DEEPSEEK_API_URL }}
+        run: |
+          python daily_paper.py
