@@ -108,6 +108,8 @@ if __name__ == "__main__":
     
     if not results:
         print("今日暂无新论文。")
+        print(msg)
+        push_to_telegram(msg)  # 新增这一行，没论文也通知你
     else:
         for i, res in enumerate(results):
             print(f"正在分析第 {i+1}/{len(results)} 篇: {res.title}")
