@@ -66,21 +66,16 @@ def summarize_with_deepseek(paper):
     except Exception as e:
         return f"网络或系统错误: {str(e)}"
 
-def push_to_telegram(report_content):
-    """发送 Markdown 消息到 Telegram"""
+def push_to_telegram(text):
+    """发送单条 Markdown 消息到 Telegram"""
     if not TG_BOT_TOKEN or not TG_CHAT_ID:
         print("未配置 Telegram Token 或 Chat ID，跳过推送。")
         return
 
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
-    
-    # 构建最终文本，添加标题和底部标记
-    header = f"🚀 *ArXiv 每日论文精选 {datetime.now().strftime('%m-%d')}*\n\n"
-    final_text = header + report_content + "\n_基于 DeepSeek-V3 自动生成_"
-
     payload = {
         "chat_id": TG_CHAT_ID,
-        "text": final_text,
+        "text": text,
         "parse_mode": "Markdown",
         "disable_web_page_preview": True # 关闭链接预览，保持排版清爽
     }
@@ -89,30 +84,34 @@ def push_to_telegram(report_content):
         response = requests.post(url, json=payload, timeout=10)
         if response.status_code != 200:
             print(f"Telegram 推送失败: {response.text}")
-        else:
-            print("Telegram 推送成功！")
     except Exception as e:
         print(f"Telegram 推送请求错误: {str(e)}")
+
 
 if __name__ == "__main__":
     print("正在搜集最新论文...")
     client = arxiv.Client()
     search = arxiv.Search(
-        query="(abs:quadrotor) AND (abs:\"air-ground\" OR abs:bimodal OR abs:planning OR abs:navigation OR abs:\"learning\" OR abs:RL OR abs:safety)", 
+        query="(abs:\"air-ground\" OR abs:bimodal OR abs:quadrotor) AND (abs:planning OR abs:navigation OR abs:\"reinforcement learning\" OR abs:RL OR abs:safety)", 
         max_results=3, 
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
     
-    full_report = ""
     results = list(client.results(search))
     
     if not results:
-        print("今日暂无新论文。")
+        msg = "今日暂无匹配的新论文。"
         print(msg)
-        push_to_telegram(msg)  # 新增这一行，没论文也通知你
+        push_to_telegram(msg)
     else:
+        # 1. 先发送一条打招呼的头部消息
+        header = f"🚀 *ArXiv 每日论文精选 {datetime.now().strftime('%m-%d')}*\n_今日共抓取 {len(results)} 篇最新研究_"
+        push_to_telegram(header)
+        time.sleep(1) # 暂停 1 秒，防止触发 Telegram 发送频率限制
+
+        # 2. 遍历每一篇论文，单独分析并单独发送
         for i, res in enumerate(results):
-            print(f"正在分析第 {i+1}/{len(results)} 篇: {res.title}")
+            print(f"正在分析并推送第 {i+1}/{len(results)} 篇: {res.title}")
             
             code_url = get_code_link(res.entry_id)
             code_md = f" | [💻 代码]({code_url})" if code_url else ""
@@ -124,8 +123,13 @@ if __name__ == "__main__":
             }
             
             summary = summarize_with_deepseek(paper_info)
-            # 适配 Telegram 的 Markdown 粗体格式
-            full_report += f"*{i+1}. {res.title}*\n🔗 [原文]({res.entry_id}){code_md}\n\n{summary}\n\n---\n"
+            
+            # 组装单篇论文的消息内容
+            paper_msg = f"*{i+1}. {res.title}*\n🔗 [原文]({res.entry_id}){code_md}\n\n{summary}"
+            push_to_telegram(paper_msg)
+            
+            time.sleep(2) # 每发完一篇暂停 2 秒，给 API 留出缓冲时间
         
-        push_to_telegram(full_report)
-        print("执行完毕！")
+        # 3. 发送收尾消息
+        push_to_telegram("_基于 DeepSeek-V3 自动生成_")
+        print("所有论文执行与推送完毕！")
