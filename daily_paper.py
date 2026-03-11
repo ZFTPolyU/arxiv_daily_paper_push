@@ -93,7 +93,7 @@ if __name__ == "__main__":
     client = arxiv.Client()
     search = arxiv.Search(
         query="(abs:\"air-ground\" OR abs:bimodal OR abs:quadrotor) AND (abs:planning OR abs:navigation OR abs:\"reinforcement learning\" OR abs:RL OR abs:safety)", 
-        max_results=3, 
+        max_results=5, 
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
     
