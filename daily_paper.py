@@ -25,23 +25,23 @@ def get_code_link(arxiv_url):
     return None
 
 def summarize_with_deepseek(paper):
-    """使用 DeepSeek 进行论文摘要深度总结"""
-    prompt_text = f"""你是一个学术分析专家。请根据以下论文的标题和摘要提供中文深度分析。
+    """使用 DeepSeek 进行论文摘要深度总结 (针对机器人与规划控制领域优化)"""
+    prompt_text = f"""你是一个深耕机器人学、四旋翼 (quadrotor) 与强化学习领域的学术分析专家。请根据以下论文的标题和摘要提供结构化的中文深度分析。
     论文标题: {paper['title']}
     论文摘要: {paper['summary']}
     
     请严格按此格式输出：
-    【快速抓要点】: （简练的语言说明该研究解决了什么问题？提出了什么新的方法？得出了什么结果结论？）
-    【逻辑推导】：  (不要堆砌技术细节，而是还原作者的思考路径，请按“起承转合”的结构讲解：**背景（context）**：为什么大家之前解决不好这个问题？**破局（insight）**：作者是怎么灵光一现的？他的核心直觉是什么？怎么把问题拆解为更具体的子问题的？**拆解**：这个方法具体分几步实现？用1，2，3列表简洁描述输入到输出的过程。）
-    【技术细节】: （补充论文中最关键的1-2个技术实现细节（比如某个特殊的Loss Function或数据处理技巧）
-    【局限性】: （潜在不足）
-    【专业知识解释】: （解释论文中核心实验方法涉及的专业名词概念（比如SFT微调、ResNet架构、推理等）
+    【快速抓要点】: （一句话简练说明该研究解决了什么痛点？提出了什么新的网络架构、规划器 (Planner) 或控制算法？得出了什么结论？）
+    【逻辑推导】: （还原作者的思考路径。**背景**：现有的规划或控制方法在动态环境/复杂地形下为何失效？**破局**：作者的核心直觉是什么？**拆解**：这个方法具体分几步实现？）
+    【技术细节与设定】: （提取摘要中最关键的技术实现细节。例如：强化学习的状态(State)/动作(Action)空间设计、Reward 函数的创新、网络结构的改进 (如加入GRU等)，或是特定的避障/安全约束。）
+    【实验环境验证】: （指出该方法是在什么环境中验证的？纯仿真环境 (如 Isaac Sim, PyBullet, Flightmare 等) 还是进行了真实物理世界 (Real-world) 的飞行/行驶测试？是否有提及 Sim-to-Real 的表现？）
+    【局限性与突破口】: （基于摘要推断该方法的潜在不足，或未来可以继续挖掘的研究方向。）
     """
 
     payload = {
         "model": "deepseek-chat", 
         "messages": [
-            {"role": "system", "content": "你是一个学术分析专家，擅长将复杂的人工智能领域的论文总结得清晰易懂。"},
+            {"role": "system", "content": "你是一个机器人领域的资深研究员，擅长将复杂的基于学习的规划 (Learning-based Planning)、强化学习和机器人控制算法总结得清晰透彻。"},
             {"role": "user", "content": prompt_text}
         ],
         "stream": False
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     print("正在搜集最新论文...")
     client = arxiv.Client()
     search = arxiv.Search(
-        query="abs:LLM OR abs:\"AI Agent\" OR abs:\"Deep Learning\"", 
+        query="(abs:\"air-ground\" OR abs:bimodal OR abs:quadrotor) AND (abs:planning OR abs:navigation OR abs:\"learning\" OR abs:RL OR abs:safety)", 
         max_results=3, 
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
