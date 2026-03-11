@@ -66,8 +66,8 @@ def summarize_with_deepseek(paper):
     except Exception as e:
         return f"网络或系统错误: {str(e)}"
 
-def push_to_telegram(text):
-    """发送单条 Markdown 消息到 Telegram"""
+def push_to_telegram(text, parse_mode="Markdown"):
+    """发送消息到 Telegram，自带 Markdown 解析失败降级机制"""
     if not TG_BOT_TOKEN or not TG_CHAT_ID:
         print("未配置 Telegram Token 或 Chat ID，跳过推送。")
         return
@@ -76,14 +76,27 @@ def push_to_telegram(text):
     payload = {
         "chat_id": TG_CHAT_ID,
         "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True # 关闭链接预览，保持排版清爽
+        "disable_web_page_preview": True # 关闭链接预览
     }
     
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+        
     try:
         response = requests.post(url, json=payload, timeout=10)
+        
+        # 如果请求失败
         if response.status_code != 200:
-            print(f"Telegram 推送失败: {response.text}")
+            error_desc = response.json().get("description", "")
+            
+            # 核心拦截逻辑：捕捉 Markdown 闭合错误
+            if "can't parse entities" in error_desc and parse_mode == "Markdown":
+                print("⚠️ Telegram Markdown 解析失败，正在自动降级为纯文本重发...")
+                # 递归调用自身，将 parse_mode 设为 None
+                push_to_telegram(text, parse_mode=None)
+            else:
+                print(f"❌ Telegram 推送失败: {error_desc}")
+                
     except Exception as e:
         print(f"Telegram 推送请求错误: {str(e)}")
 
