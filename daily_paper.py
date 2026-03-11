@@ -98,7 +98,7 @@ if __name__ == "__main__":
     print("正在搜集最新论文...")
     client = arxiv.Client()
     search = arxiv.Search(
-        query="(abs:\"air-ground\" OR abs:bimodal OR abs:quadrotor) AND (abs:planning OR abs:navigation OR abs:\"learning\" OR abs:RL OR abs:safety)", 
+        query="(abs:quadrotor) AND (abs:\"air-ground\" OR abs:bimodal OR abs:planning OR abs:navigation OR abs:\"learning\" OR abs:RL OR abs:safety)", 
         max_results=3, 
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
