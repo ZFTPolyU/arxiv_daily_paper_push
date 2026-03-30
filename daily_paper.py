@@ -103,14 +103,29 @@ def push_to_telegram(text, parse_mode="Markdown"):
 
 if __name__ == "__main__":
     print("正在搜集最新论文...")
-    client = arxiv.Client()
+    
+    # 核心修改点：自定义 arxiv.Client，增加延迟和重试机制，缩小单次拉取数量
+    client = arxiv.Client(
+        page_size=10,         # 默认是 100，改小一点减轻服务器压力
+        delay_seconds=10.0,   # 每次请求间隔增加到 10 秒（默认是 3 秒）
+        num_retries=5         # 遇到 429 等错误时，最大重试次数增加到 5 次
+    )
+    
     search = arxiv.Search(
         query="(abs:\"air-ground\" OR abs:bimodal OR abs:quadrotor) AND (abs:planning OR abs:navigation OR abs:\"reinforcement learning\" OR abs:RL OR abs:safety)", 
         max_results=5, 
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
     
-    results = list(client.results(search))
+    # 增加 Try-Except 捕获异常，防止 Action 崩溃导致后续步骤无法执行
+    results = []
+    try:
+        results = list(client.results(search))
+    except Exception as e:
+        error_msg = f"⚠️ 获取 arXiv 论文失败：触发了 API 频率限制或网络错误。\n详细信息: `{str(e)}`"
+        print(error_msg)
+        push_to_telegram(error_msg)
+        exit(1) # 安全退出
     
     if not results:
         msg = "今日暂无匹配的新论文。"
@@ -120,7 +135,7 @@ if __name__ == "__main__":
         # 1. 先发送一条打招呼的头部消息
         header = f"🚀 *ArXiv 每日论文精选 {datetime.now().strftime('%m-%d')}*\n_今日共抓取 {len(results)} 篇最新研究_"
         push_to_telegram(header)
-        time.sleep(1) # 暂停 1 秒，防止触发 Telegram 发送频率限制
+        time.sleep(2) # 暂停 2 秒，防止触发 Telegram 发送频率限制
 
         # 2. 遍历每一篇论文，单独分析并单独发送
         for i, res in enumerate(results):
@@ -141,8 +156,8 @@ if __name__ == "__main__":
             paper_msg = f"*{i+1}. {res.title}*\n🔗 [原文]({res.entry_id}){code_md}\n\n{summary}"
             push_to_telegram(paper_msg)
             
-            time.sleep(2) # 每发完一篇暂停 2 秒，给 API 留出缓冲时间
+            time.sleep(3) # 稍微增加发文间隔，给 API 留出缓冲时间
         
         # 3. 发送收尾消息
-        push_to_telegram("_基于 DeepSeek-V3 自动生成_")
+        push_to_telegram("_基于 DeepSeek 自动生成_")
         print("所有论文执行与推送完毕！")
